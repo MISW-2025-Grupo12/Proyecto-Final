@@ -26,15 +26,15 @@ class ReglaNegocio(ABC):
 
 class IdEntidadEsInmutable(ReglaNegocio):
 
-    entidad: object
-
     def __init__(self, entidad, mensaje='El identificador de la entidad debe ser Inmutable'):
         super().__init__(mensaje)
         self.entidad = entidad
 
     def es_valido(self) -> bool:
         try:
-            if self.entidad._id:
+            # Si _id ya existe, significa que el id ya fue asignado y no debe cambiarse
+            if hasattr(self.entidad, '_id') and self.entidad._id is not None:
                 return False
-        except AttributeError as error:
+            return True
+        except AttributeError:
             return True

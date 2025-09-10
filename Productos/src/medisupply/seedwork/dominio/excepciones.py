@@ -11,12 +11,14 @@ class ExcepcionDominio(Exception):
 
 class IdDebeSerInmutableExcepcion(ExcepcionDominio):
     def __init__(self, mensaje='El identificador debe ser inmutable'):
+        super().__init__(mensaje)
         self.__mensaje = mensaje
     def __str__(self):
         return str(self.__mensaje)
 
 class ReglaNegocioExcepcion(ExcepcionDominio):
     def __init__(self, regla: ReglaNegocio):
+        super().__init__(str(regla))
         self.regla = regla
 
     def __str__(self):
@@ -24,6 +26,7 @@ class ReglaNegocioExcepcion(ExcepcionDominio):
 
 class ExcepcionFabrica(ExcepcionDominio):
     def __init__(self, mensaje):
+        super().__init__(mensaje)
         self.__mensaje = mensaje
     def __str__(self):
         return str(self.__mensaje)

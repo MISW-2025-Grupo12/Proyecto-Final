@@ -15,11 +15,14 @@ import uuid
 class Entidad:
     id: uuid.UUID = field(default_factory=uuid.uuid4, hash=True)
     _id: uuid.UUID = field(init=False, repr=False, hash=True)
-    fecha_creacion: datetime =  field(default=datetime.now())
-    fecha_actualizacion: datetime = field(default=datetime.now())
+    fecha_creacion: datetime = field(default_factory=datetime.now)
+    fecha_actualizacion: datetime = field(default_factory=datetime.now)
+
+    def __post_init__(self):
+        self._id = self.id
 
     @classmethod
-    def siguiente_id(self) -> uuid.UUID:
+    def siguiente_id(cls) -> uuid.UUID:
         return uuid.uuid4()
 
     @property
@@ -35,10 +38,11 @@ class Entidad:
 
 @dataclass
 class AgregacionRaiz(Entidad, ValidarReglasMixin):
-    ...
+    def __post_init__(self):
+        super().__post_init__()
 
 
 @dataclass
 class Locacion(Entidad):
     def __str__(self) -> str:
-        ...
+        return f"Locacion(id={self.id})"

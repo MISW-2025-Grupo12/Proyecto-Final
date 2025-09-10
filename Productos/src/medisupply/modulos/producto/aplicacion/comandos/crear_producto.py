@@ -48,7 +48,9 @@ class CrearProductoHandler(CrearProductoBaseHandler):
         repositorio_producto = self.fabrica_repositorio.crear_objeto(RepositorioProducto)
         repositorio_producto.agregar(producto_entidad)
         
-        # 5. Retornar el DTO del producto creado
+        # 5. Disparar evento de creación
+        producto_entidad.disparar_evento_creacion()
+        # 6. Retornar el DTO del producto creado
         return self.fabrica_producto.crear_objeto(producto_entidad, MapeadorProducto())
 
 @ejecutar_comando.register

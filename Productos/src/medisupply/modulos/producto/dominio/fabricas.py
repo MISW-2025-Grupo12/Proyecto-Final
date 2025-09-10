@@ -21,6 +21,7 @@ class FabricaProducto(Fabrica):
             self.validar_regla(PrecioProductoNoPuedeSerVacio(producto.precio))
             self.validar_regla(PrecioProductoNoPuedeSerMenorACero(producto.precio))
             self.validar_regla(PrecioProductoDebeSerNumerico(producto.precio))
+                        
             return producto
 
 @dataclass
