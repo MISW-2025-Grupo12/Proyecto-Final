@@ -17,7 +17,7 @@ COPY . /app
 EXPOSE 5000
 
 # Define environment variable
-ENV FLASK_APP=src/medisupply/api/__init__.py
+ENV FLASK_APP=src.api
 ENV PYTHONPATH=/app
 
 # Run the application
