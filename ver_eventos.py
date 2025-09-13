@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-"""
-Script mejorado para ver eventos publicados en Pub/Sub de forma continua
-"""
 
 import json
 import os
@@ -117,7 +113,7 @@ class EventViewer:
                 except Exception as e:
                     print(f"⚠️  Error iniciando escucha para {topic_name}: {e}")
             
-            # Mantener el script corriendo
+
             try:
                 # Esperar a que todas las suscripciones terminen
                 for future in streaming_futures:
