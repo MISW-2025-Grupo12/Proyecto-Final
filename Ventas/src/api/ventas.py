@@ -22,12 +22,19 @@ def crear_pedido():
         map_pedido = MapeadorPedidoDTOJson()
         pedido_dto = map_pedido.externo_a_dto(pedido_dict)
 
+        # Extraer solo producto_id y cantidad de los items
+        items_simplificados = []
+        for item in pedido_dto.items:
+            items_simplificados.append({
+                'producto_id': str(item.producto_id),
+                'cantidad': item.cantidad
+            })
+
         comando = CrearPedido(
             cliente_id=pedido_dto.cliente_id,
             fecha_pedido=pedido_dto.fecha_pedido,
             estado=pedido_dto.estado,
-            items=pedido_dto.items,
-            total=pedido_dto.total
+            items=items_simplificados
         )
 
         resultado = ejecutar_comando(comando)

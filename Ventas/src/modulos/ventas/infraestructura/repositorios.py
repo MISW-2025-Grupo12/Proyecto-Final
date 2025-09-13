@@ -38,7 +38,6 @@ class RepositorioPedidoComandoPostgreSQL(RepositorioPedidoComando):
             # Crear items asociados usando el ID del pedido del modelo
             for item in pedido.items:
                 item_modelo = ItemComando(
-                    id=item.id,
                     pedido_id=pedido_modelo.id,  # Usar el ID del modelo, no de la entidad
                     producto_id=item.producto_id,
                     cantidad=item.cantidad,
@@ -71,7 +70,6 @@ class RepositorioPedidoComandoPostgreSQL(RepositorioPedidoComando):
                 ItemComando.query.filter_by(pedido_id=pedido_modelo.id).delete()
                 for item in pedido.items:
                     item_modelo = ItemComando(
-                        id=item.id,
                         pedido_id=pedido_modelo.id,  # Usar el ID del modelo
                         producto_id=item.producto_id,
                         cantidad=item.cantidad,

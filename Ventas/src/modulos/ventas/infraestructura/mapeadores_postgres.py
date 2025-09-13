@@ -7,6 +7,7 @@ from modulos.ventas.infraestructura.dto_postgres import (
 )
 from datetime import datetime
 import json
+import uuid
 
 class MapeadorPedidoComando(Mapeador):
     """Mapeador para modelos de comandos PostgreSQL"""
@@ -28,7 +29,6 @@ class MapeadorPedidoComando(Mapeador):
         items_entidad = []
         for item_modelo in dto.items:
             item_entidad = Item(
-                id=item_modelo.id,
                 producto_id=item_modelo.producto_id,
                 cantidad=item_modelo.cantidad,
                 precio=float(item_modelo.precio),
@@ -81,7 +81,7 @@ class MapeadorPedidoConsulta(Mapeador):
                 items_data = json.loads(dto.items_detalle)
                 for item_data in items_data:
                     item_entidad = Item(
-                        producto_id=item_data['producto_id'],
+                        producto_id=uuid.UUID(item_data['producto_id']),
                         cantidad=item_data['cantidad'],
                         precio=item_data['precio'],
                         total=item_data['total']

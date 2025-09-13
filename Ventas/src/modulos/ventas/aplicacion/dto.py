@@ -12,7 +12,6 @@ class ItemDTO(DTO):
     cantidad: int
     precio: float
     total: float
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
 
 @dataclass(frozen=True)
 class PedidoDTO(DTO):

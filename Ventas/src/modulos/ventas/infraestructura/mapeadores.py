@@ -12,7 +12,6 @@ class MapeadorPedido(Mapeador):
         items_modelo = []
         for item in entidad.items:
             items_modelo.append(ItemModelo(
-                id=item.id,
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
                 precio=item.precio,
@@ -32,7 +31,6 @@ class MapeadorPedido(Mapeador):
         items_entidad = []
         for item in dto.items:
             items_entidad.append(Item(
-                id=item.id,
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
                 precio=item.precio,

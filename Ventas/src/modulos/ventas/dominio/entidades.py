@@ -8,11 +8,11 @@ from modulos.ventas.dominio.eventos import PedidoCreado
 from modulos.ventas.dominio.enums import EstadoPedido
 
 @dataclass
-class Item(Entidad):
-    producto_id: uuid.UUID = field(default_factory=uuid.uuid4)
-    cantidad: int = field(default=0)
-    precio: float = field(default=0.0)
-    total: float = field(default=0.0)
+class Item:
+    producto_id: uuid.UUID
+    cantidad: int = 0
+    precio: float = 0.0
+    total: float = 0.0
 
 @dataclass
 class Pedido(AgregacionRaiz):

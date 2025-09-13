@@ -14,8 +14,8 @@ class MapeadorPedidoDTOJson(AppMap):
             items_dto.append(ItemDTO(
                 producto_id=uuid.UUID(item['producto_id']),
                 cantidad=item['cantidad'],
-                precio=item['precio'],
-                total=item['total']
+                precio=0.0,  # Se obtendrá del servicio de productos
+                total=0.0   # Calculado
             ))
         
         return PedidoDTO(
@@ -23,14 +23,13 @@ class MapeadorPedidoDTOJson(AppMap):
             fecha_pedido=datetime.fromisoformat(externo['fecha_pedido']),
             estado=EstadoPedido(externo['estado']),
             items=items_dto,
-            total=externo['total'])
+            total=0.0)  # Calculado
     
     def dto_a_externo(self, dto: PedidoDTO) -> dict:
         # Convertir items de ItemDTOs a diccionarios
         items_externo = []
         for item in dto.items:
             items_externo.append({
-                'id': str(item.id),
                 'producto_id': str(item.producto_id),
                 'cantidad': item.cantidad,
                 'precio': item.precio,
@@ -54,7 +53,6 @@ class MapeadorPedido(RepMap):
         items_dto = []
         for item in entidad.items:
             items_dto.append(ItemDTO(
-                id=item.id,
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
                 precio=item.precio,
