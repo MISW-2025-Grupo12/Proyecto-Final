@@ -12,16 +12,30 @@ logger = logging.getLogger(__name__)
 # Identifica el directorio base
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-def importar_modelos_alchemy():
+def importar_modelos_postgres():
+    """Importa los modelos PostgreSQL para comandos y consultas"""
     try:
-        from modulos.ventas.infraestructura.dto import db
-        from modulos.ventas.infraestructura.dto import Pedido, Item
-        logger.info("Modelos de SQLAlchemy importados correctamente")
+        from modulos.ventas.infraestructura.dto_postgres import (
+            # Modelos de comandos
+            PedidoComando, ItemComando,
+            # Modelos de consultas
+            PedidoConsulta, ItemConsulta
+        )
+        logger.info("✅ Modelos PostgreSQL importados correctamente")
     except Exception as e:
-        logger.error(f"Error importando modelos: {e}")
+        logger.error(f"❌ Error importando modelos PostgreSQL: {e}")
         raise
-    
-    return db
+
+def inicializar_sistema_eventos():
+    """Inicializa el sistema de eventos"""
+    try:
+        from modulos.ventas.aplicacion.configuracion_eventos import configurar_sistema_eventos
+        if configurar_sistema_eventos():
+            logger.info("✅ Sistema de eventos inicializado correctamente")
+        else:
+            logger.warning("⚠️ Sistema de eventos no se pudo configurar")
+    except Exception as e:
+        logger.warning(f"⚠️ Sistema de eventos no disponible: {e}")
 
 
 
@@ -31,28 +45,19 @@ def create_app(configuracion=None):
         app = Flask(__name__, instance_relative_config=True)
         logger.info("Aplicación Flask creada")
 
-        if configuracion is not None and configuracion["TESTING"]:
-            app.config['SQLALCHEMY_DATABASE_URI'] =\
-                'sqlite:///' + configuracion["DATABASE"]
-        
-        # Configuracion de BD
-        else:
-            app.config['SQLALCHEMY_DATABASE_URI'] =\
-                'sqlite:///' + os.path.join(basedir, 'database.db')
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
         # Configurar Flask para no redirigir automáticamente URLs sin barra final
         app.url_map.strict_slashes = False
 
-        # Inicializa la DB
-        from config.config.db import init_db, db
+        # Inicializar PostgreSQL con CQRS
+        from config.config.db_postgres import init_databases, create_all_tables
         
-        init_db(app)
-        importar_modelos_alchemy()
+        init_databases(app)
+        importar_modelos_postgres()
+        inicializar_sistema_eventos()
 
         with app.app_context():
-            db.create_all()
-            logger.info("Base de datos inicializada")
+            create_all_tables()
+            logger.info("✅ Bases de datos PostgreSQL inicializadas")
 
         
         # Importa Blueprints

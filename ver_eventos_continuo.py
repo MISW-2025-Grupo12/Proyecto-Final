@@ -17,7 +17,9 @@ class EventViewer:
         self.topics = [
             'productos-creados',
             'productos-stock-actualizado', 
-            'tipos-productos-creados'
+            'tipos-productos-creados',
+            'pedidos-creados',
+            'eventos-generales'
         ]
         
         # Configurar emulador

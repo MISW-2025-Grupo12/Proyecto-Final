@@ -1,17 +1,17 @@
-from seedwork.aplicacion.comandos import ComandoHandler
-from modulos.ventas.infraestructura.fabricas import FabricaRepositorio
-from modulos.ventas.dominio.fabricas import FabricaPedido
+from modulos.ventas.infraestructura.fabrica_unificada_cqrs import FabricaRepositorioUnificada
 
-
-class PedidoBaseHandler(ComandoHandler):
+class PedidoComandoBaseHandler:
+    """Handler base para comandos de pedidos con soporte CQRS"""
+    
     def __init__(self):
-        self._fabrica_repositorio = FabricaRepositorio()
-        self._fabrica_pedido = FabricaPedido()
-
+        self.fabrica_repositorio = FabricaRepositorioUnificada()
+    
     @property
-    def fabrica_repositorio(self):
-        return self._fabrica_repositorio
-
+    def repositorio_comando(self):
+        """Acceso al repositorio de comandos"""
+        return self.fabrica_repositorio.fabrica_repositorio_comando
+    
     @property
-    def fabrica_pedido(self):
-        return self._fabrica_pedido
+    def repositorio_consulta(self):
+        """Acceso al repositorio de consultas"""
+        return self.fabrica_repositorio.fabrica_repositorio_consulta

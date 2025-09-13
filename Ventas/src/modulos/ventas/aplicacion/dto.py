@@ -4,7 +4,7 @@ from typing import Optional
 from seedwork.aplicacion.dto import DTO
 from datetime import datetime
 from typing import List
-from modulos.ventas.dominio.entidades import EstadoPedido
+from modulos.ventas.dominio.enums import EstadoPedido
 
 @dataclass(frozen=True)
 class ItemDTO(DTO):

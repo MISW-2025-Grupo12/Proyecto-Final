@@ -12,23 +12,28 @@ from flask_swagger import swagger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Identifica el directorio base
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-def importar_modelos_alchemy():
+def importar_modelos_postgres():
+    """Importa los modelos PostgreSQL para comandos y consultas"""
     try:
-        from modulos.producto.infraestructura.dto import db
-        from modulos.producto.infraestructura.dto import Producto, TipoProducto
-        logger.info("Modelos de SQLAlchemy importados correctamente")
+        from modulos.producto.infraestructura.dto_postgres import (
+            # Modelos de comandos
+            TipoProductoComando, ProductoComando,
+            # Modelos de consultas
+            ProductoConsulta, TipoProductoConsulta
+        )
+        logger.info("✅ Modelos PostgreSQL importados correctamente")
+        logger.info("   �� Modelos de comandos: TipoProductoComando, ProductoComando")
+        logger.info("   �� Modelos de consultas: ProductoConsulta, TipoProductoConsulta")
     except Exception as e:
-        logger.error(f"Error importando modelos: {e}")
+        logger.error(f"❌ Error importando modelos PostgreSQL: {e}")
         raise
 
-def inicializar_sistema_eventos():
+def inicializar_sistema_eventos(app):
     """Inicializa el sistema de eventos y pub/sub"""
     try:
         print("Inicializando sistema de eventos...")
         from seedwork.infraestructura.pubsub import PublicadorPubSub
+        from seedwork.infraestructura.consumidor_pubsub import ConsumidorPubSub
         from seedwork.dominio.eventos import despachador_eventos
         
         # Crear y registrar el publicador Pub/Sub
@@ -39,7 +44,14 @@ def inicializar_sistema_eventos():
         print(f"✅ Publicador registrado. Total publicadores: {len(despachador_eventos._publicadores)}")
         publicador.crear_topics()
         
-
+        # Crear y configurar el consumidor Pub/Sub
+        print("Creando consumidor Pub/Sub...")
+        consumidor = ConsumidorPubSub(app=app)
+        print("Creando suscripciones...")
+        consumidor.crear_suscripciones()
+        print("Iniciando escucha de eventos...")
+        consumidor.iniciar_escucha()
+        
         logger.info("Sistema de eventos inicializado correctamente")
         print("✅ Sistema de eventos inicializado correctamente")
     except Exception as e:
@@ -51,34 +63,28 @@ def create_app(configuracion=None):
     try:
         # Init la aplicacion de Flask
         app = Flask(__name__, instance_relative_config=True)
-        logger.info("Aplicación Flask creada")
+        logger.info("🚀 Aplicación Flask creada")
 
-        if configuracion is not None and configuracion["TESTING"]:
-            app.config['SQLALCHEMY_DATABASE_URI'] =\
-                'sqlite:///' + configuracion["DATABASE"]
-        
-        # Configuracion de BD
-        else:
-            app.config['SQLALCHEMY_DATABASE_URI'] =\
-                'sqlite:///' + os.path.join(basedir, 'database.db')
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        
         # Configurar Flask para no redirigir automáticamente URLs sin barra final
         app.url_map.strict_slashes = False
 
-         # Inicializa la DB
-        from config.config.db import init_db, db
+        # Inicializar bases de datos PostgreSQL
+        from config.config.db_postgres import init_databases, create_all_tables
         
-        init_db(app)
-        importar_modelos_alchemy()
+        init_databases(app)
+        importar_modelos_postgres()
 
         with app.app_context():
-            db.create_all()
-            logger.info("Base de datos inicializada")
+            create_all_tables(app)
+            logger.info("✅ Bases de datos PostgreSQL inicializadas")
 
-        inicializar_sistema_eventos()
+        # Inicializar sistema de eventos
+        inicializar_sistema_eventos(app)
+        
+        # Importar handlers de eventos para registrarlos
+        import modulos.producto.aplicacion.event_handlers.pedido_creado_handler
 
-         # Importa Blueprints
+        # Importa Blueprints
         from . import producto
 
         # Registro de Blueprints
@@ -88,18 +94,24 @@ def create_app(configuracion=None):
         def spec():
             swag = swagger(app)
             swag['info']['version'] = "1.0"
-            swag['info']['title'] = "Productos API"
+            swag['info']['title'] = "Productos API - PostgreSQL CQRS"
             return jsonify(swag)
 
         @app.route("/health")
         def health():
-            return {"status": "up"}
+            return {
+                "status": "up",
+                "database": "postgresql",
+                "mode": "cqrs",
+                "commands_db": "productos_commands",
+                "queries_db": "productos_queries"
+            }
 
-        logger.info("Aplicación Flask configurada correctamente")
+        logger.info("✅ Aplicación Flask configurada correctamente con PostgreSQL CQRS")
         return app
         
     except Exception as e:
-        logger.error(f"Error creando la aplicación: {e}")
+        logger.error(f"❌ Error creando la aplicación: {e}")
         raise
 
 # Crear la aplicación para que Flask pueda encontrarla

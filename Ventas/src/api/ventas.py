@@ -7,7 +7,6 @@ from seedwork.aplicacion.comandos import ejecutar_comando
 from modulos.ventas.aplicacion.consultas.obtener_todos_los_pedidos import ObtenerTodosLosPedidosConsulta
 from seedwork.aplicacion.consultas import ejecutar_consulta
 
-import modulos.ventas.aplicacion.comandos.crear_pedido
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -31,10 +30,35 @@ def crear_pedido():
             total=pedido_dto.total
         )
 
-        ejecutar_comando(comando)
+        resultado = ejecutar_comando(comando)
+        logger.info(f"Pedido creado: {resultado}")
         return Response('{}', status=202, mimetype='application/json')
+        
+        
+    except ValueError as e:
+        # Errores de validación (productos no encontrados, stock insuficiente, etc.)
+        logger.warning(f"Error de validación al crear pedido: {e}")
+        return Response(
+            json.dumps({
+                "error": "Error de validación",
+                "message": str(e),
+                "type": "validation_error"
+            }), 
+            status=400, 
+            mimetype='application/json'
+        )
     except Exception as e:
-        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
+        # Otros errores del sistema
+        logger.error(f"Error interno al crear pedido: {e}")
+        return Response(
+            json.dumps({
+                "error": "Error interno del servidor",
+                "message": "Ha ocurrido un error inesperado",
+                "type": "internal_error"
+            }), 
+            status=500, 
+            mimetype='application/json'
+        )
 
 @bp.route('/', methods=['GET'])
 def obtener_todos_los_pedidos():

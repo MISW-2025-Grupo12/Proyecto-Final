@@ -13,13 +13,12 @@ import uuid
 
 @dataclass
 class Entidad:
-    id: uuid.UUID = field(default_factory=uuid.uuid4, hash=True)
-    _id: uuid.UUID = field(init=False, repr=False, hash=True)
+    _id: uuid.UUID = field(default_factory=uuid.uuid4, hash=True)
     fecha_creacion: datetime = field(default_factory=datetime.now)
     fecha_actualizacion: datetime = field(default_factory=datetime.now)
 
     def __post_init__(self):
-        self._id = self.id
+        pass
 
     @classmethod
     def siguiente_id(cls) -> uuid.UUID:

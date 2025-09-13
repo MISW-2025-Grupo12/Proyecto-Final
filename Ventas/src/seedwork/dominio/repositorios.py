@@ -14,9 +14,6 @@ class Repositorio(ABC):
     def obtener_por_id(self, id: UUID) -> Entidad:
         ...
 
-    @abstractmethod
-    def obtener_todos(self) -> list[Entidad]:
-        ...
 
     @abstractmethod
     def agregar(self, entity: Entidad):

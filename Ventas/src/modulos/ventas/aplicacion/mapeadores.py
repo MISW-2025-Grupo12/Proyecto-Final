@@ -75,7 +75,6 @@ class MapeadorPedido(RepMap):
         items_entidad = []
         for item in dto.items:
             items_entidad.append(Item(
-                id=item.id,
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
                 precio=item.precio,
@@ -83,7 +82,6 @@ class MapeadorPedido(RepMap):
             ))
         
         return Pedido(
-            id=dto.id,
             cliente_id=dto.cliente_id,
             fecha_pedido=dto.fecha_pedido,
             estado=dto.estado,
