@@ -1,6 +1,6 @@
 import seedwork.presentacion.api as api
 import json
-from modulos.producto.aplicacion.servicios import ServicioProducto
+#from modulos.producto.aplicacion.servicios import ServicioProducto
 from modulos.producto.aplicacion.mapeadores import MapeadorProductoDTOJson, MapeadorTipoProductoDTOJson, MapeadorProducto, MapeadorTipoProducto  
 from flask import request, Response, Blueprint
 from modulos.producto.aplicacion.comandos.crear_producto import CrearProducto
@@ -9,8 +9,7 @@ from seedwork.aplicacion.comandos import ejecutar_comando
 from modulos.producto.aplicacion.consultas.obtener_todos_los_productos import ObtenerTodosLosProductosConsulta
 from seedwork.aplicacion.consultas import ejecutar_consulta
 from modulos.producto.aplicacion.consultas.obtener_todos_los_tipo_productos import ObtenerTodosLosTiposDeProductoConsulta
-
-import modulos.producto.aplicacion.comandos
+from modulos.producto.aplicacion.consultas.obtener_producto_por_id import ObtenerProductoPorIdConsulta
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 bp = api.crear_blueprint('producto', '/api/producto')
 
 # Servicio crear producto
-@bp.route('/servicio-producto', methods=['POST'])
+'''@bp.route('/servicio-producto', methods=['POST'])
 def crear_producto():
     try:
         producto_dict = request.json
@@ -30,8 +29,7 @@ def crear_producto():
         return map_producto.dto_a_externo(resultado_dto)
 
     except Exception as e:
-        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
-
+        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')'''
 # Comando crear producto
 @bp.route('/', methods=['POST'])
 def crear_producto_comando():
@@ -75,8 +73,31 @@ def obtener_todos_los_productos():
         logger.error(f"Error al obtener todos los productos: {e}")
         return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
 
+# Query obtener producto por id
+@bp.route('/<id>', methods=['GET'])
+def obtener_producto_por_id(id):
+    try:
+        consulta = ObtenerProductoPorIdConsulta(id)
+        resultado = ejecutar_consulta(consulta)
+        
+        if not resultado.resultado:
+            return Response(json.dumps(dict(error="Producto no encontrado")), status=404, mimetype='application/json')
+        
+        # Convertir la entidad de dominio a DTO primero
+        mapeador = MapeadorProducto()
+        producto_dto = mapeador.entidad_a_dto(resultado.resultado)
+        
+        # Convertir DTO a formato JSON externo
+        mapeador_json = MapeadorProductoDTOJson()
+        producto_json = mapeador_json.dto_a_externo(producto_dto)
+        
+        return Response(json.dumps(producto_json), status=200, mimetype='application/json')
+    except Exception as e:
+        logger.error(f"Error al obtener producto por id: {e}")
+        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
+
 # Servicio crear tipo producto
-@bp.route('/tipo-producto', methods=['POST'])
+'''@bp.route('/tipo-producto', methods=['POST'])
 def crear_tipo_producto():
     try:
         tipo_producto_dict = request.json
@@ -86,7 +107,7 @@ def crear_tipo_producto():
         resultado_dto = servicio.crear_tipo_producto(tipo_producto_dto)
         return map_tipo_producto.dto_a_externo(resultado_dto)
     except Exception as e:
-        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
+        return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')'''
 
 # Command crear tipo producto
 @bp.route('/tipo-producto-comando', methods=['POST'])

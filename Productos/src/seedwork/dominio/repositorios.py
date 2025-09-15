@@ -15,10 +15,6 @@ class Repositorio(ABC):
         ...
 
     @abstractmethod
-    def obtener_todos(self) -> list[Entidad]:
-        ...
-
-    @abstractmethod
     def agregar(self, entity: Entidad):
         ...
 
