@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: medisupply-ingress
+  namespace: medisupply
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "medisupply-ip"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/producto
+        pathType: Prefix
+        backend:
+          service:
+            name: productos-service
+            port:
+              number: 5000
+      - path: /api/ventas
+        pathType: Prefix
+        backend:
+          service:
+            name: ventas-service
+            port:
+              number: 5000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: productos-service
+            port:
+              number: 5000

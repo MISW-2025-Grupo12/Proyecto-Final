@@ -1,0 +1,9 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: medisupply-ssl-cert
+  namespace: medisupply
+spec:
+  domains:
+    - productos.medisupply.com
+    - ventas.medisupply.com

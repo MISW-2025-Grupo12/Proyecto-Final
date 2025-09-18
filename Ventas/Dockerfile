@@ -1,27 +1,30 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    FLASK_APP=src.api \
+    FLASK_ENV=production
 
 WORKDIR /app
 
-# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements y instalar dependencias de Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código fuente
 COPY src/ ./src/
 
-# Configurar variables de entorno
-ENV FLASK_APP=src.api
-ENV PYTHONPATH=/app
-ENV FLASK_ENV=development
+RUN mkdir -p /app/credentials
 
-# Exponer puerto
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 5000
 
-# Comando para ejecutar la aplicación
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]

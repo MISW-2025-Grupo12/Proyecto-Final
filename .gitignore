@@ -5,3 +5,8 @@ __pycache__/
 instance/
 .env
 .sql
+
+# Credenciales
+credentials/
+*.json
+service-account-key.json
