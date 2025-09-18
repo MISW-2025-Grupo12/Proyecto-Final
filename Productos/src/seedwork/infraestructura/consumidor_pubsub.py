@@ -6,6 +6,7 @@ import json
 import logging
 import threading
 import time
+import os
 from typing import Dict, Any
 from google.cloud import pubsub_v1
 from google.auth.exceptions import DefaultCredentialsError
@@ -17,10 +18,12 @@ logger = logging.getLogger(__name__)
 class ConsumidorPubSub:
     """Consumidor de eventos que recibe mensajes de Google Cloud Pub/Sub"""
     
-    def __init__(self, project_id: str = "medisupply-project", emulator_host: str = None, app=None):
-        self.project_id = project_id
-        import os
-        self.emulator_host = emulator_host or os.environ.get('PUBSUB_EMULATOR_HOST', 'localhost:8085')
+    def __init__(self, project_id: str = None, emulator_host: str = None, app=None):
+                
+        self.project_id = project_id or os.getenv('GCP_PROJECT_ID', 'medisupply-project')
+        self.use_emulator = os.getenv('USE_PUBSUB_EMULATOR', 'false').lower() == 'true'
+        self.emulator_host = emulator_host or os.getenv('PUBSUB_EMULATOR_HOST', 'localhost:8085')
+        
         self.app = app
         self._subscriber = None
         self._subscriptions = {}
@@ -29,14 +32,48 @@ class ConsumidorPubSub:
     def _initialize_subscriber(self):
         """Inicializa el cliente de Pub/Sub"""
         try:
-            import os
-            os.environ['PUBSUB_EMULATOR_HOST'] = self.emulator_host
+            if self.use_emulator:
+                # Configurar para usar el emulador
+                os.environ['PUBSUB_EMULATOR_HOST'] = self.emulator_host
+                logger.info(f"Consumidor Pub/Sub inicializado con emulador en {self.emulator_host}")
+            else:
+                # Configurar para usar GCP
+                self._setup_gcp_authentication()
+                logger.info(f"Consumidor Pub/Sub inicializado para GCP proyecto: {self.project_id}")
             
             self._subscriber = pubsub_v1.SubscriberClient()
-            logger.info(f"Consumidor Pub/Sub inicializado con emulador en {self.emulator_host}")
+            
         except Exception as e:
             logger.warning(f"No se pudo inicializar consumidor Pub/Sub: {e}")
             self._subscriber = None
+    
+    def _setup_gcp_authentication(self):
+        """Configura la autenticación para GCP"""
+        # Verificar si ya hay credenciales configuradas
+        if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+            logger.info("Usando credenciales desde GOOGLE_APPLICATION_CREDENTIALS")
+            return
+        
+        service_account_key = os.getenv('GCP_SERVICE_ACCOUNT_KEY')
+        if service_account_key:
+            try:
+                import json
+                import tempfile
+                
+                json.loads(service_account_key)
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    f.write(service_account_key)
+                    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = f.name
+                    logger.info("Credenciales de GCP configuradas desde variable de entorno")
+                    
+            except json.JSONDecodeError:
+                logger.warning("GCP_SERVICE_ACCOUNT_KEY no es un JSON válido")
+            except Exception as e:
+                logger.warning(f"Error configurando credenciales de GCP: {e}")
+        else:
+            # Usar Application Default Credentials (ADC)
+            logger.info("Usando Application Default Credentials (ADC) para GCP")
     
     def crear_suscripciones(self):
         """Crea las suscripciones necesarias para escuchar eventos"""

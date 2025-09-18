@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ventas-deployment
+  namespace: medisupply
+  labels:
+    app: ventas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ventas
+  template:
+    metadata:
+      labels:
+        app: ventas
+    spec:
+      containers:
+      - name: ventas
+        image: gcr.io/desarrolloswcloud/ventas:latest
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: medisupply-config
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/app/credentials/service-account-key.json"
+        volumeMounts:
+        - name: gcp-credentials
+          mountPath: /app/credentials
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: gcp-credentials
+        secret:
+          secretName: gcp-credentials
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ventas-service
+  namespace: medisupply
+spec:
+  selector:
+    app: ventas
+  ports:
+  - port: 5000
+    targetPort: 5000
+  type: ClusterIP
+

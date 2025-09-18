@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from typing import Dict, Any
 from google.cloud import pubsub_v1
 from google.auth.exceptions import DefaultCredentialsError
@@ -13,11 +14,12 @@ logger = logging.getLogger(__name__)
 class PublicadorPubSub(PublicadorEventos):
     """Publicador de eventos que envía mensajes a Google Cloud Pub/Sub"""
     
-    def __init__(self, project_id: str = "medisupply-project", emulator_host: str = None):
-        self.project_id = project_id
-        # Usar la variable de entorno si está disponible, sino usar localhost por defecto
-        import os
-        self.emulator_host = emulator_host or os.environ.get('PUBSUB_EMULATOR_HOST', 'localhost:8085')
+    def __init__(self, project_id: str = None, emulator_host: str = None):
+        
+        self.project_id = project_id or os.getenv('GCP_PROJECT_ID', 'medisupply-project')
+        self.use_emulator = os.getenv('USE_PUBSUB_EMULATOR', 'false').lower() == 'true'
+        self.emulator_host = emulator_host or os.getenv('PUBSUB_EMULATOR_HOST', 'localhost:8085')
+        
         self._publisher = None
         self._topics_creados = False
         self._initialize_publisher()
@@ -25,15 +27,48 @@ class PublicadorPubSub(PublicadorEventos):
     def _initialize_publisher(self):
         """Inicializa el cliente de Pub/Sub"""
         try:
-            # Configurar para usar el emulador
-            import os
-            os.environ['PUBSUB_EMULATOR_HOST'] = self.emulator_host
+            if self.use_emulator:
+                # Configurar para usar el emulador
+                os.environ['PUBSUB_EMULATOR_HOST'] = self.emulator_host
+                logger.info(f"Publicador Pub/Sub inicializado con emulador en {self.emulator_host}")
+            else:
+                # Configurar para usar GCP
+                self._setup_gcp_authentication()
+                logger.info(f"Publicador Pub/Sub inicializado para GCP proyecto: {self.project_id}")
             
             self._publisher = pubsub_v1.PublisherClient()
-            logger.info(f"Publicador Pub/Sub inicializado con emulador en {self.emulator_host}")
+            
         except Exception as e:
             logger.warning(f"No se pudo inicializar publicador Pub/Sub: {e}")
             self._publisher = None
+    
+    def _setup_gcp_authentication(self):
+        """Configura la autenticación para GCP"""
+        
+        if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+            logger.info("Usando credenciales desde GOOGLE_APPLICATION_CREDENTIALS")
+            return
+        
+        service_account_key = os.getenv('GCP_SERVICE_ACCOUNT_KEY')
+        if service_account_key:
+            try:
+                import json
+                import tempfile
+                
+                json.loads(service_account_key)
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    f.write(service_account_key)
+                    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = f.name
+                    logger.info("Credenciales de GCP configuradas desde variable de entorno")
+                    
+            except json.JSONDecodeError:
+                logger.warning("GCP_SERVICE_ACCOUNT_KEY no es un JSON válido")
+            except Exception as e:
+                logger.warning(f"Error configurando credenciales de GCP: {e}")
+        else:
+            # Usar Application Default Credentials (ADC)
+            logger.info("Usando Application Default Credentials (ADC) para GCP")
     
     def publicar(self, evento: EventoDominio):
         """Publica un evento a Pub/Sub"""
@@ -83,16 +118,13 @@ class PublicadorPubSub(PublicadorEventos):
         """Determina el nombre del topic basado en el tipo de evento"""
         tipo_evento = evento.__class__.__name__
         
-        # Mapeo de eventos a topics
+        
         topic_mapping = {
-            'ProductoCreado': 'productos-creados',
             'ProductoStockActualizado': 'productos-stock-actualizado',
-            'TipoProductoCreado': 'tipos-productos-creados',
-            'EventoDominio': 'eventos-generales',
             'PedidoCreado': 'pedidos-creados'
         }
         
-        return topic_mapping.get(tipo_evento, 'eventos-generales')
+        return topic_mapping.get(tipo_evento, 'productos-stock-actualizado')
     
     def crear_topics(self):
         """Crea los topics necesarios en Pub/Sub"""
@@ -102,10 +134,7 @@ class PublicadorPubSub(PublicadorEventos):
             return
         
         topics = [
-            'productos-creados',
-            'productos-stock-actualizado', 
-            'tipos-productos-creados',
-            'eventos-generales',
+            'productos-stock-actualizado',
             'pedidos-creados'
         ]
         

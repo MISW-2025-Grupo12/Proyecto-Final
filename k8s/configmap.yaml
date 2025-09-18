@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medisupply-config
+  namespace: medisupply
+data:
+  # Configuración de Pub/Sub
+  USE_PUBSUB_EMULATOR: "false"
+  GCP_PROJECT_ID: "desarrolloswcloud"
+  
+  # Configuración de Flask
+  FLASK_ENV: "production"
+  PYTHONPATH: "/app"
+  
+  # Configuración de bases de datos
+  COMMANDS_DATABASE_URL: "postgresql://postgres:password@postgres-commands:5432/productos_commands"
+  QUERIES_DATABASE_URL: "postgresql://postgres:password@postgres-queries:5432/productos_queries"
+  COMMANDS_DATABASE_URL_VENTAS: "postgresql://postgres:password@postgres-ventas-commands:5432/ventas_commands"
+  QUERIES_DATABASE_URL_VENTAS: "postgresql://postgres:password@postgres-ventas-queries:5432/ventas_queries"
+  
+  # Comunicación entre servicios
+  PRODUCTOS_SERVICE_URL: "http://productos-service:5000"
+  PRODUCTOS_SERVICE_TIMEOUT: "10"

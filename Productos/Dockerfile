@@ -1,24 +1,34 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.9-slim
+FROM python:3.11-slim
 
-# Set the working directory in the container
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    FLASK_APP=src.api \
+    FLASK_ENV=production
+
+
 WORKDIR /app
 
-# Copy requirements first for better caching
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+
 COPY requirements.txt /app/
 
-# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the current directory contents into the container at /app
 COPY . /app
 
-# Make port 5000 available to the world outside this container
+RUN mkdir -p /app/credentials
+
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 5000
 
-# Define environment variable
-ENV FLASK_APP=src.api
-ENV PYTHONPATH=/app
-
-# Run the application
 CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]
