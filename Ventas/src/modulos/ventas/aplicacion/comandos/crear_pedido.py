@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from seedwork.aplicacion.comandos import Comando, ejecutar_comando
 import uuid
+import time
+import logging
 from datetime import datetime
 from typing import List
 from modulos.ventas.aplicacion.dto import ItemDTO, EstadoPedido, PedidoDTO
@@ -9,6 +11,8 @@ from modulos.ventas.dominio.repositorios_comando import RepositorioPedidoComando
 from modulos.ventas.dominio.fabricas import FabricaPedido
 from modulos.ventas.aplicacion.comandos.base import PedidoComandoBaseHandler
 from modulos.ventas.infraestructura.cliente_productos import ClienteProductos
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -26,32 +30,61 @@ class CrearPedidoHandler(PedidoComandoBaseHandler):
         self._cliente_productos = ClienteProductos()
     
     def handle(self, comando: CrearPedido) -> PedidoDTO:
-        # 1. Obtener precios de productos y crear items completos
-        items_completos = self._obtener_precios_y_crear_items(comando.items)
+        start_time_command = time.time()
+        timestamp = datetime.now().isoformat()
         
-        # 2. Calcular el total del pedido
-        total_pedido = sum(item.total for item in items_completos)
+        logger.info(f"[METRICS-START] Crear pedido comando - Timestamp: {timestamp} - Cliente: {comando.cliente_id}")
         
-        # 3. Crear el DTO del pedido
-        pedido_dto = PedidoDTO(
-            cliente_id=comando.cliente_id,
-            fecha_pedido=comando.fecha_pedido,
-            estado=comando.estado,
-            items=items_completos,
-            total=total_pedido)
-        
-        # 4. Convertir DTO a entidad de dominio usando la fábrica
-        pedido_entidad = self._fabrica_pedido.crear_objeto(pedido_dto, self._mapeador)
-        
-        # 5. Guardar en el repositorio de comandos (que sincroniza automáticamente con consultas)
-        repositorio_comando = self.repositorio_comando
-        repositorio_comando.agregar(pedido_entidad)
-        
-        # 6. Disparar evento de creación (opcional)
-        pedido_entidad.disparar_evento_creacion()
-        
-        # 7. Retornar el DTO del pedido creado
-        return pedido_dto
+        try:
+            # 1. Obtener precios de productos y crear items completos
+            start_products = time.time()
+            items_completos = self._obtener_precios_y_crear_items(comando.items)
+            products_time = (time.time() - start_products) * 1000
+            logger.info(f"[METRICS-PRODUCTS] Obtención precios productos - Latencia: {products_time:.2f}ms - Items: {len(items_completos)}")
+            
+            # 2. Calcular el total del pedido
+            start_calculation = time.time()
+            total_pedido = sum(item.total for item in items_completos)
+            calculation_time = (time.time() - start_calculation) * 1000
+            logger.info(f"[METRICS-CALCULATION] Cálculo total pedido - Latencia: {calculation_time:.2f}ms - Total: {total_pedido}")
+            
+            # 3. Crear el DTO del pedido
+            start_dto_creation = time.time()
+            pedido_dto = PedidoDTO(
+                cliente_id=comando.cliente_id,
+                fecha_pedido=comando.fecha_pedido,
+                estado=comando.estado,
+                items=items_completos,
+                total=total_pedido)
+            
+            # 4. Convertir DTO a entidad de dominio usando la fábrica
+            pedido_entidad = self._fabrica_pedido.crear_objeto(pedido_dto, self._mapeador)
+            dto_creation_time = (time.time() - start_dto_creation) * 1000
+            logger.info(f"[METRICS-DTO] Creación DTO y entidad - Latencia: {dto_creation_time:.2f}ms")
+            
+            # 5. Guardar en el repositorio de comandos (que sincroniza automáticamente con consultas)
+            start_persistence = time.time()
+            repositorio_comando = self.repositorio_comando
+            repositorio_comando.agregar(pedido_entidad)
+            persistence_time = (time.time() - start_persistence) * 1000
+            logger.info(f"[METRICS-PERSISTENCE] Persistencia comando - Latencia: {persistence_time:.2f}ms")
+            
+            # 6. Disparar evento de creación (opcional)
+            start_event = time.time()
+            pedido_entidad.disparar_evento_creacion()
+            event_time = (time.time() - start_event) * 1000
+            logger.info(f"[METRICS-EVENT] Disparo evento creación - Latencia: {event_time:.2f}ms")
+            
+            # 7. Retornar el DTO del pedido creado
+            total_time = (time.time() - start_time_command) * 1000
+            logger.info(f"[METRICS-END] Crear pedido comando - Latencia total: {total_time:.2f}ms - Cliente: {comando.cliente_id}")
+            
+            return pedido_dto
+            
+        except Exception as e:
+            total_time = (time.time() - start_time_command) * 1000
+            logger.error(f"[METRICS-ERROR] Crear pedido comando - Latencia: {total_time:.2f}ms - Error: {e} - Timestamp: {timestamp}")
+            raise
     
     def _obtener_precios_y_crear_items(self, items: List[dict]) -> List[ItemDTO]:
         """Obtiene los precios de los productos y crea los items completos"""

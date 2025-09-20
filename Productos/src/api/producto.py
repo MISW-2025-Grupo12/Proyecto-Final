@@ -1,5 +1,7 @@
 import seedwork.presentacion.api as api
 import json
+import time
+from datetime import datetime
 #from modulos.producto.aplicacion.servicios import ServicioProducto
 from modulos.producto.aplicacion.mapeadores import MapeadorProductoDTOJson, MapeadorTipoProductoDTOJson, MapeadorProducto, MapeadorTipoProducto  
 from flask import request, Response, Blueprint
@@ -14,6 +16,10 @@ from modulos.producto.aplicacion.consultas.obtener_producto_por_id import Obtene
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+request_count = 0
+start_time = time.time()
 
 bp = api.crear_blueprint('producto', '/api/producto')
 
@@ -56,6 +62,14 @@ def crear_producto_comando():
 # Query obtener todos los productos
 @bp.route('/', methods=['GET'])
 def obtener_todos_los_productos():
+    global request_count
+    request_count += 1
+    
+    start_time_query = time.time()
+    timestamp = datetime.now().isoformat()
+    
+    logger.info(f"[METRICS-START] Consulta productos - Timestamp: {timestamp} - Request #{request_count}")
+    
     try:
         consulta = ObtenerTodosLosProductosConsulta()
         resultado = ejecutar_consulta(consulta)
@@ -68,9 +82,17 @@ def obtener_todos_los_productos():
         mapeador_json = MapeadorProductoDTOJson()
         productos_json = [mapeador_json.dto_a_externo(producto_dto) for producto_dto in productos_dto]
         
+        end_time_query = time.time()
+        latency_ms = (end_time_query - start_time_query) * 1000
+        
+        logger.info(f"[METRICS-END] Consulta productos - Latencia: {latency_ms:.2f}ms - Productos: {len(productos_json)} - Timestamp: {timestamp}")
+        
         return json.dumps(productos_json)
     except Exception as e:
-        logger.error(f"Error al obtener todos los productos: {e}")
+        end_time_query = time.time()
+        latency_ms = (end_time_query - start_time_query) * 1000
+        
+        logger.error(f"[METRICS-ERROR] Consulta productos - Latencia: {latency_ms:.2f}ms - Error: {e} - Timestamp: {timestamp}")
         return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
 
 # Query obtener producto por id
@@ -130,6 +152,14 @@ def crear_tipo_producto_comando():
 # Query obtener todos los tipos de producto
 @bp.route('/tipo-producto', methods=['GET'])
 def obtener_todos_los_tipos_de_producto():
+    global request_count
+    request_count += 1
+    
+    start_time_query = time.time()
+    timestamp = datetime.now().isoformat()
+    
+    logger.info(f"[METRICS-START] Consulta tipos producto - Timestamp: {timestamp} - Request #{request_count}")
+    
     try:
         consulta = ObtenerTodosLosTiposDeProductoConsulta()
         resultado = ejecutar_consulta(consulta)
@@ -138,6 +168,16 @@ def obtener_todos_los_tipos_de_producto():
         tipos_productos_dto = [mapeador.entidad_a_dto(tipo_producto) for tipo_producto in resultado.resultado]
         mapeador_json = MapeadorTipoProductoDTOJson()
         tipos_productos_json = [mapeador_json.dto_a_externo(tipo_producto_dto) for tipo_producto_dto in tipos_productos_dto]
+        
+        end_time_query = time.time()
+        latency_ms = (end_time_query - start_time_query) * 1000
+        
+        logger.info(f"[METRICS-END] Consulta tipos producto - Latencia: {latency_ms:.2f}ms - Tipos: {len(tipos_productos_json)} - Timestamp: {timestamp}")
+        
         return json.dumps(tipos_productos_json)
     except Exception as e:
+        end_time_query = time.time()
+        latency_ms = (end_time_query - start_time_query) * 1000
+        
+        logger.error(f"[METRICS-ERROR] Consulta tipos producto - Latencia: {latency_ms:.2f}ms - Error: {e} - Timestamp: {timestamp}")
         return Response(json.dumps(dict(error=str(e))), status=400, mimetype='application/json')
