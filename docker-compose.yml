@@ -1,0 +1,171 @@
+services:
+  # Base de datos para comandos (normalizada)
+  postgres-commands:
+    image: postgres:15-alpine
+    container_name: productos-commands-db
+    environment:
+      POSTGRES_DB: productos_commands
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_commands_data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos para consultas (denormalizada)
+  postgres-queries:
+    image: postgres:15-alpine
+    container_name: productos-queries-db
+    environment:
+      POSTGRES_DB: productos_queries
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_queries_data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos para comandos de ventas (normalizada)
+  postgres-ventas-commands:
+    image: postgres:15-alpine
+    container_name: ventas-commands-db
+    environment:
+      POSTGRES_DB: ventas_commands
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_ventas_commands_data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos para consultas de ventas (denormalizada)
+  postgres-ventas-queries:
+    image: postgres:15-alpine
+    container_name: ventas-queries-db
+    environment:
+      POSTGRES_DB: ventas_queries
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_ventas_queries_data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pubsub-emulator:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 --project=medisupply-project
+    ports:
+      - "8085:8085"
+    environment:
+      - PUBSUB_PROJECT_ID=medisupply-project
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  productos:
+    build: ./Productos
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres-commands:
+        condition: service_healthy
+      postgres-queries:
+        condition: service_healthy
+      pubsub-emulator:
+        condition: service_healthy
+    environment:
+      # Configuración de Pub/Sub - GCP real
+      - USE_PUBSUB_EMULATOR=false
+      - GCP_PROJECT_ID=desarrolloswcloud
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account-key.json
+      # Para usar emulador, cambiar a:
+      # - USE_PUBSUB_EMULATOR=true
+      # - PUBSUB_EMULATOR_HOST=pubsub-emulator:8085
+      # - GCP_PROJECT_ID=medisupply-project
+      
+      # Configuración de Flask
+      - FLASK_APP=src.api
+      - PYTHONPATH=/app
+      - FLASK_ENV=development
+      
+      # Bases de datos
+      - COMMANDS_DATABASE_URL=postgresql://postgres:password@postgres-commands:5432/productos_commands
+      - QUERIES_DATABASE_URL=postgresql://postgres:password@postgres-queries:5432/productos_queries
+    volumes:
+      - ./Productos/src:/app/src
+      - ./credentials:/app/credentials:ro
+
+  ventas:
+    build: ./Ventas
+    ports:
+      - "5001:5000"
+    depends_on:
+      postgres-ventas-commands:
+        condition: service_healthy
+      postgres-ventas-queries:
+        condition: service_healthy
+      productos:
+        condition: service_started
+      pubsub-emulator:
+        condition: service_healthy
+    environment:
+      # Configuración de Pub/Sub - GCP real
+      - USE_PUBSUB_EMULATOR=false
+      - GCP_PROJECT_ID=desarrolloswcloud
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account-key.json
+      # Para usar emulador, cambiar a:
+      # - USE_PUBSUB_EMULATOR=true
+      # - PUBSUB_EMULATOR_HOST=pubsub-emulator:8085
+      # - GCP_PROJECT_ID=medisupply-project
+      
+      # Configuración de Flask
+      - FLASK_APP=src.api
+      - PYTHONPATH=/app
+      - FLASK_ENV=development
+      
+      # Bases de datos
+      - COMMANDS_DATABASE_URL=postgresql://postgres:password@postgres-ventas-commands:5432/ventas_commands
+      - QUERIES_DATABASE_URL=postgresql://postgres:password@postgres-ventas-queries:5432/ventas_queries
+      
+      # Comunicación con otros servicios
+      - PRODUCTOS_SERVICE_URL=http://productos:5000
+      - PRODUCTOS_SERVICE_TIMEOUT=10
+    volumes:
+      - ./Ventas/src:/app/src
+      - ./credentials:/app/credentials:ro
+
+volumes:
+  postgres_commands_data:
+  postgres_queries_data:
+  postgres_ventas_commands_data:
+  postgres_ventas_queries_data:

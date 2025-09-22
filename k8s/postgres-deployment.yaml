@@ -1,0 +1,210 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-commands
+  namespace: medisupply
+  labels:
+    app: postgres-commands
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-commands
+  template:
+    metadata:
+      labels:
+        app: postgres-commands
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "productos_commands"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-commands
+  namespace: medisupply
+spec:
+  selector:
+    app: postgres-commands
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-queries
+  namespace: medisupply
+  labels:
+    app: postgres-queries
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-queries
+  template:
+    metadata:
+      labels:
+        app: postgres-queries
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "productos_queries"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-queries
+  namespace: medisupply
+spec:
+  selector:
+    app: postgres-queries
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-ventas-commands
+  namespace: medisupply
+  labels:
+    app: postgres-ventas-commands
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-ventas-commands
+  template:
+    metadata:
+      labels:
+        app: postgres-ventas-commands
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "ventas_commands"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-ventas-commands
+  namespace: medisupply
+spec:
+  selector:
+    app: postgres-ventas-commands
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-ventas-queries
+  namespace: medisupply
+  labels:
+    app: postgres-ventas-queries
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-ventas-queries
+  template:
+    metadata:
+      labels:
+        app: postgres-ventas-queries
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "ventas_queries"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-ventas-queries
+  namespace: medisupply
+spec:
+  selector:
+    app: postgres-ventas-queries
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP

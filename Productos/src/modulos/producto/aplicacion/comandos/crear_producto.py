@@ -1,0 +1,61 @@
+
+from dataclasses import dataclass
+from seedwork.aplicacion.comandos import Comando, ejecutar_comando
+import uuid
+from modulos.producto.aplicacion.dto import ProductoDTO
+from modulos.producto.aplicacion.mapeadores import MapeadorProducto
+from modulos.producto.dominio.repositorios_comando import RepositorioProductoComando, RepositorioTipoProductoComando
+from modulos.producto.dominio.repositorios_consulta import RepositorioTipoProductoConsulta
+from modulos.producto.aplicacion.comandos.base import ProductoComandoBaseHandler
+
+@dataclass
+class CrearProducto(Comando):
+    nombre: str
+    descripcion: str
+    precio: float
+    stock: int
+    marca: str
+    lote: str
+    tipo_producto_id: uuid.UUID
+
+class CrearProductoHandler(ProductoComandoBaseHandler):
+    def __init__(self):
+        super().__init__()
+        self._mapeador = MapeadorProducto()
+
+    def handle(self, comando: CrearProducto) -> ProductoDTO:
+        # 1. Obtener el tipo de producto existente (usando repositorio de consulta)
+        repositorio_tipo_consulta = self.fabrica_repositorio.crear_objeto(RepositorioTipoProductoConsulta)
+        tipo_producto = repositorio_tipo_consulta.obtener_por_id(comando.tipo_producto_id)
+        
+        if not tipo_producto:
+            raise ValueError(f"Tipo de producto con ID {comando.tipo_producto_id} no encontrado")
+        
+        # 2. Crear el DTO del producto
+        producto_dto = ProductoDTO(
+            nombre=comando.nombre,
+            descripcion=comando.descripcion,
+            precio=comando.precio,
+            stock=comando.stock,
+            marca=comando.marca,
+            lote=comando.lote,
+            tipo_producto_id=comando.tipo_producto_id
+        )
+        
+        # 3. Convertir DTO a entidad de dominio usando la fábrica
+        producto_entidad = self.fabrica_producto.crear_objeto(producto_dto, MapeadorProducto())
+        
+        # 4. Guardar en el repositorio de comandos (escritura)
+        repositorio_producto_comando = self.fabrica_repositorio.crear_objeto(RepositorioProductoComando)
+        repositorio_producto_comando.agregar(producto_entidad)
+        
+        # 5. Disparar evento de creación
+        producto_entidad.disparar_evento_creacion()
+        
+        # 6. Retornar el DTO del producto creado
+        return producto_dto
+
+@ejecutar_comando.register
+def _(comando: CrearProducto):
+    handler = CrearProductoHandler()
+    return handler.handle(comando)

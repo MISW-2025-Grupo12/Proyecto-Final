@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+instance/
+.env
+.sql
+
+# Credenciales
+credentials/
+*.json
+service-account-key.json
